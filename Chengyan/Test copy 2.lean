@@ -33,25 +33,9 @@ lemma faithfulSMul_of_isIntegralClosure (A B L : Type*) [CommRing A] [CommSemiri
     apply IsIntegralClosure.algebraMap_injective B A L
     simp [Algebra.algebraMap_eq_smul_one, h 1]
 
--- lemma eqv_zero (L B : Type*) (a : ℕ) [CommRing B] [CommRing L] [Algebra B L]
---     [FaithfulSMul B L] : NeZero (a : L) ↔ NeZero (a : B) := by
---   simp only [neZero_iff, ne_eq, show (a : L) = (algebraMap B L (a : B)) by simp,
---     FaithfulSMul.algebraMap_eq_zero_iff B L]
-
--- lemma algclosure_HasEnoughRootOfUnity (L K :Type*)(n:ℕ)[Field K]
--- [Field L][Algebra K L] [IsAlgClosure K L][NeZero (n:L)]:
---  HasEnoughRootsOfUnity L n :=
---   have : IsAlgClosed L := IsAlgClosure.isAlgClosed K
---   IsSepClosed.hasEnoughRootsOfUnity L n
-
 lemma pow_notMem {B : Type*} [CommRing B](I : Ideal B) [hI : I.IsPrime]
     (ℓ : ℕ) (hlp : ↑ℓ ∉ I) (i:ℕ) : ↑(ℓ^i) ∉ I := by
   simpa using (hI.mem_of_pow_mem i).mt hlp
- /- by
-  have primeI: I.IsPrime := hI.isPrime
-  by_contra hi
-  simp[← mem_radical_iff,IsPrime.radical primeI] at hi
-  exact hlp hi -/
 
 variable {A K L B G : Type*}
     -- let L be an algebraic closure of K
@@ -71,70 +55,18 @@ variable {A K L B G : Type*}
     -- Then for a prime ell not in I...
     (ℓ : ℕ) [Fact (Nat.Prime ℓ)](hlp : (ℓ : B) ∉ I)
 
--- -- the value of the cyclotomic character at Frob_I is #A/PA where P = I ∩ A
--- lemma foo1 {n : ℕ} (ζ' : B) (ζ : L) [FaithfulSMul B L](hζ'ζ : algebraMap B L ζ' = ζ) (hζ : IsPrimitiveRoot ζ n) :
---     IsPrimitiveRoot ζ' n :=
---   IsPrimitiveRoot.of_map_of_injective (by rwa [hζ'ζ])
---     (FaithfulSMul.algebraMap_injective B L)
-
--- lemma foo2 {n : ℕ} (ζ' : B) [FaithfulSMul B L] (hζ' : IsPrimitiveRoot ζ' n) :
---     IsPrimitiveRoot (algebraMap B L ζ') n :=
---   IsPrimitiveRoot.map_of_injective hζ'
---     (FaithfulSMul.algebraMap_injective B L)
-
 open Polynomial in
 lemma isIntegral_of_roots {n : ℕ} (hpos : 0 < n) {ζ : L} (hζ : ζ ^ n = 1) : IsIntegral ℤ ζ :=
   ⟨X ^ n - 1, monic_X_pow_sub_C 1 (Nat.ne_of_lt hpos).symm, by simp [hζ]⟩
-
--- def mapRootsOfUnity {n:ℕ} :rootsOfUnity n B →* rootsOfUnity n L where
---   toFun := fun ζ ↦ ⟨Units.map (algebraMap B L) ζ.1 , by
---     simpa using congr(Units.map (algebraMap B L).toMonoidHom $(ζ.2))⟩
---   map_one' := by simp_all only [OneMemClass.coe_one, map_one, Subgroup.mk_eq_one]
---   map_mul' := by aesop
-
--- def unitsOfPow {R : Type*} [Semiring R] {n : ℕ} (hpos : 0 < n) {x : R}
---     (hx : x ^ n = 1) : Rˣ where
---   val := x
---   inv := x^(n-1)
---   val_inv := (by rw [←hx, mul_pow_sub_one (by omega)])
---   inv_val := (by rw [←hx, pow_sub_one_mul (by omega)])
-
--- noncomputable def rootIso (L B : Type*) [Field L] [IsAlgClosed L]
---     [CommRing B] [Algebra B L] [FaithfulSMul B L]
---     (hbl : (integralClosure ℤ L).toSubring ≤ (⊥ : Subalgebra B L).toSubring)
---     (n : ℕ) (hpos : 0 < n) : rootsOfUnity n B ≃* rootsOfUnity n L :=
---   .ofBijective mapRootsOfUnity <| by
---     have inj:= FaithfulSMul.algebraMap_injective B L
---     constructor
---     · rintro ⟨a, _⟩ ⟨b, _⟩
---       simp [mapRootsOfUnity, Units.ext_iff, inj.eq_iff]
---     · rintro ⟨ζ,hζ⟩
---       simp only [mem_rootsOfUnity, Units.ext_iff, Units.val_pow_eq_pow_val, Units.val_one] at hζ
---       obtain ⟨ζ',hζ'ζ⟩:= hbl (isIntegral_of_roots hpos hζ)
---       have hζ':ζ'^n=1 := inj (by simp [← hζ, ← hζ'ζ, Algebra.ofId])
---       use ⟨unitsOfPow hpos hζ',by simpa [Units.ext_iff] using hζ'⟩
---       simpa [mapRootsOfUnity,Units.ext_iff]
-
 
 lemma exists_isPrimitiveRoot (L : Type*) [Field L] [IsAlgClosed L]
     {B : Type*} [CommRing B] [Algebra B L] [FaithfulSMul B L]
     (hbl : (integralClosure ℤ L).toSubring ≤ (⊥ : Subalgebra B L).toSubring)
     {n : ℕ} [NeZero (n:L)] (hpos : 0 < n) : ∃ ζ : B, IsPrimitiveRoot ζ n := by
   obtain ⟨⟨ζ, hζ⟩, cyc⟩ := IsSepClosed.hasEnoughRootsOfUnity L n
-  -- have hpos: 0 < n := NeZero.pos_of_neZero_natCast L
   obtain ⟨ζ', hζ'⟩ := hbl (isIntegral_of_roots hpos hζ.pow_eq_one)
   exact ⟨ζ', IsPrimitiveRoot.of_map_of_injective (by simp_all [Algebra.ofId])
     (FaithfulSMul.algebraMap_injective B L)⟩
-
--- lemma isCyclic (B : Type*) [CommRing B] [IsDomain B] (n : ℕ) [NeZero n] : IsCyclic (rootsOfUnity n B) := by
---   infer_instance
-
--- lemma isCyclic (L : Type*) [Field L] [IsAlgClosed L]
---     {B : Type*} [CommRing B] [Algebra B L] [FaithfulSMul B L]
---     (hbl : (integralClosure ℤ L).toSubring ≤ (⊥ : Subalgebra B L).toSubring)
---     {n : ℕ} (hpos : 0 < n) [IsCyclic (rootsOfUnity n L)] : IsCyclic (rootsOfUnity n B) := by
---   let f : rootsOfUnity n L ≃* rootsOfUnity n B := (rootIso L B hbl n hpos).symm
---   exact isCyclic_of_surjective f f.surjective
 
 lemma hasEnoughRootsOfUnity (L : Type*) [Field L] [IsAlgClosed L]
     {B : Type*} [CommRing B] [Algebra B L] [FaithfulSMul B L]
@@ -151,23 +83,6 @@ lemma hasEnoughRootsOfUnity' (A L B : Type*) [Field L] [IsAlgClosed L]
     HasEnoughRootsOfUnity B n :=
   hasEnoughRootsOfUnity L (fun _ hx ↦
     (IsIntegralClosure.isIntegral_iff (R := A)).1 hx.tower_top) n
-
--- include hI hlp A K L
--- omit [Algebra A B] hI [Fact (Nat.Prime ℓ)] in
--- variable (A L B K) in
--- lemma enough_pow_root_L [IsDomain B] [NeZero (ℓ : L)] : ∀ (i : ℕ), HasEnoughRootsOfUnity L (ℓ ^ i):=by
---     intro i
---     -- have := neZero_pow_L I ℓ hlp i (A:=A) (B:=B) (L:=L)
---     exact algclosure_HasEnoughRootOfUnity L K (ℓ^i)
-
--- omit [Algebra A B] hI [Fact (Nat.Prime ℓ)] in
--- variable (A L B K) in
--- lemma enough_pow_root_B [IsDomain B]: ∀ (i : ℕ), ∃ ζ : B,IsPrimitiveRoot ζ (ℓ ^ i):= by
---     intro i
---     have:= neZero_pow_B ℓ hlp i
---     have : IsAlgClosed L := IsAlgClosure.isAlgClosed K
---     have foo := intclo_HasEnoughRootOfUnity (ℓ^i) (B := B) (A := A) (L := L)
---     exact HasEnoughRootsOfUnity.prim
 
 include hI hlp hF K B L
 theorem cyclotomicCharacter_eq_card_quotient_under :
