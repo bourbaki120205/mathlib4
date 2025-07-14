@@ -45,19 +45,15 @@ lemma algclosure_HasEnoughRootOfUnity (L K :Type*)(n:ℕ)[Field K]
   exact IsSepClosed.hasEnoughRootsOfUnity L n
 
 lemma pow_not_in {B : Type*} [CommRing B](I : Ideal B) [hI : I.IsMaximal]
- (l : ℕ) (hlp : ↑l ∉ I):∀i:ℕ , ↑(l^i) ∉ I := by
+ (l : ℕ) (hlp : ↑l ∉ I): ∀i:ℕ , ↑(l^i) ∉ I := by
   have primeI: I.IsPrime := hI.isPrime
   by_contra hi
-  simp at hi
-  rw[← mem_radical_iff,IsPrime.radical primeI] at hi
+  simp[← mem_radical_iff,IsPrime.radical primeI] at hi
   exact hlp hi
 
 lemma neZero_B {B : Type*} [CommRing B]{I : Ideal B}(l : ℕ)(hlp : ↑l ∉ I):NeZero (l:B):=by
-        rw[neZero_iff]
-        by_contra Y
-        apply hlp
-        rw[Y]
-        exact Submodule.zero_mem I
+  rw[neZero_iff]
+  aesop
 
 lemma neZero_pow_B {B : Type*} [CommRing B][IsDomain B]{I : Ideal B}(l : ℕ)(hlp : ↑l ∉ I):
   ∀ (i:ℕ),NeZero (((l^i):ℕ):B) := by
@@ -65,35 +61,21 @@ lemma neZero_pow_B {B : Type*} [CommRing B][IsDomain B]{I : Ideal B}(l : ℕ)(hl
   have h0: ∀ (i:ℕ),NeZero ((l^i):B):= by
     exact fun i => NeZero.pow
   intro i
-  have h1:(((l^i):ℕ):B)=((l^i):B) := by
-    exact cast_pow l i
-  rw[h1]
-  exact h0 i
+  simp_all only [cast_pow]
 
 variable
-    -- let K be a number field with ring of integers A
-    {A K : Type*}
-    [CommRing A] [IsDedekindDomain A]
-    [Field K] [NumberField K] [Algebra A K]
-    [IsFractionRing A K]
-    [IsIntegralClosure A ℤ K]
+
+    {A K : Type*} [CommRing A] [Field K]
     -- let L be an algebraic closure of K
-    {L : Type*} [Field L] [Algebra K L]
-    [Algebra A L] [IsScalarTower A K L]
-    [IsAlgClosure K L]
+    {L : Type*} [Field L] [Algebra K L][IsAlgClosure K L]
+    [Algebra A L]
     -- and let B be the integral closure of A in L
     {B : Type*} [CommRing B] [Algebra B L]
-    [Algebra A B] [IsScalarTower A B L]
+    [Algebra A B]
     [IsIntegralClosure B A L]
     -- Let G be the Galois group of L/K
-    variable {G : Type*} [Group G]
-    [MulSemiringAction G L]
-    [SMulCommClass G K L]
-    [Algebra.IsInvariant K L G]
-    [MulSemiringAction G B]
-    [SMulCommClass G A B]
-    [Algebra.IsInvariant A B G]
-    [IsScalarTower G B L]
+    variable {G : Type*} [Group G] [MulSemiringAction G L] [MulSemiringAction G B]
+    [SMulCommClass G A B] [IsScalarTower G B L]
     -- Let F be an element of G
     (F : G)
     -- Let I be a maximal ideal of B
@@ -104,7 +86,12 @@ variable
     (l : ℕ) [Fact (Nat.Prime l)](hlp : ↑l ∉ I)
 
 -- the value of the cyclotomic character at Frob_I is #A/PA where P = I ∩ A
-
+include A B L hlp in
+omit [Algebra A B] [Fact (Nat.Prime l)] in
+lemma neZero_pow_L [IsDomain B] :∀ (i:ℕ),NeZero (((l^i):ℕ):L) := by
+  have := faithfulSMul_of_isIntegralClosure A B L
+  convert neZero_pow_B l hlp
+  exact eqv_zero L B _
 
 lemma foo1 {n : ℕ} (ζ' : B) (ζ : L) [FaithfulSMul B L](hζ'ζ : algebraMap B L ζ' = ζ) (hζ : IsPrimitiveRoot ζ n) :
     IsPrimitiveRoot ζ' n :=
@@ -117,10 +104,6 @@ lemma foo2 {n : ℕ} (ζ' : B) (ζ : L) [FaithfulSMul B L](hζ'ζ : algebraMap B
     (FaithfulSMul.algebraMap_injective B L)
   rwa[hζ'ζ] at this
 
-
-example {α β : Type} (f g : α → β) (x : α) (h : f = g) : f x = g x :=
-  congr($h x)
-
 open Polynomial in
 lemma isIntegral_of_roots{n:ℕ} (hpos:0 < n) {ζ:L}(hζ:ζ^n=1): IsIntegral ℤ (ζ:L) := by
   use X ^ n - 1
@@ -129,7 +112,7 @@ lemma isIntegral_of_roots{n:ℕ} (hpos:0 < n) {ζ:L}(hζ:ζ^n=1): IsIntegral ℤ
   · simpa [sub_eq_zero]
 
 include A in
-omit [IsDedekindDomain A] [Algebra A B] [IsScalarTower A B L] in
+omit [Algebra A B]  in
 lemma ext_algmap {n:ℕ} (hpos: 0 < n) {ζ:L}(hζ:ζ^n=1):
  ∃ζ':B, algebraMap B L ζ'=ζ := by
   have:= isIntegral_of_roots hpos hζ
@@ -183,67 +166,47 @@ lemma intclo_HasEnoughRootOfUnity {A : Type u_1} [CommRing A] {L : Type u_3}
   · let f : rootsOfUnity n L ≃* rootsOfUnity n B := (rootIso A L B hpos).symm
     exact isCyclic_of_surjective f f.surjective
 
+include hI hlp A K L
+omit [Algebra A B] hI [Fact (Nat.Prime l)] in
+variable (A L B K) in
+lemma enough_pow_root_L [IsDomain B] : ∀ (i : ℕ), HasEnoughRootsOfUnity L (l ^ i):=by
+    intro i
+    have := neZero_pow_L I l hlp i (A:=A) (B:=B) (L:=L)
+    exact algclosure_HasEnoughRootOfUnity L K (l^i)
 
-include hI hF hlp A B L K
-omit [IsDedekindDomain
-  A] [NumberField
-  K] [Algebra A
-  K] [IsFractionRing A
-  K] [IsIntegralClosure A ℤ
-  K] [IsScalarTower A K
-  L] [IsScalarTower A B L] [SMulCommClass G K L] [Algebra.IsInvariant K L G] [Algebra.IsInvariant A B G] in
+omit [Algebra A B] hI [Fact (Nat.Prime l)] in
+variable (A L B K) in
+lemma enough_pow_root_B [IsDomain B]: ∀ (i : ℕ), ∃ ζ : B,IsPrimitiveRoot ζ (l ^ i):= by
+    intro i
+    have:= neZero_pow_B l hlp i
+    have : IsAlgClosed L := IsAlgClosure.isAlgClosed K
+    have foo := intclo_HasEnoughRootOfUnity (l^i) (B := B) (A := A) (L := L)
+    exact HasEnoughRootsOfUnity.prim
+
+include hI hF B L
 theorem cyclo_thing:
   ((cyclotomicCharacter L l (MulSemiringAction.toRingEquiv G L F)) : ℤ_[l]) =
   Nat.card (A ⧸ I.under A) := by
   set q:= ↑(Nat.card (A ⧸ under A I))
   set g:= (MulSemiringAction.toRingEquiv G L F)
-  have inj:= faithfulSMul_of_isIntegralClosure A B L
-  have H:= pow_not_in I l hlp
-  have DomainB: IsDomain B:= isDomain_of_faithfulSMul B L
-  have : IsAlgClosed L := IsAlgClosure.isAlgClosed K
-
-  --reduce modular l^i
   rw[← PadicInt.ext_of_toZModPow]
   intro i
+  have := faithfulSMul_of_isIntegralClosure A B L
+  have := isDomain_of_faithfulSMul B L
+  have : IsAlgClosed L := IsAlgClosure.isAlgClosed K
+  have := enough_pow_root_L A K L B I l hlp
   simp
-  have H1 := H i
+  obtain ⟨ζ,hζ⟩ := enough_pow_root_B A K L B I l hlp i
+  have foo: (ζ:L)= algebraMap B L (ζ:B):= rfl
+  have hζ': IsPrimitiveRoot (ζ:L) (l ^ i):= foo2 (ζ:B) (ζ:L) foo hζ
 
-  --have enough roots in B
-  have this := neZero_pow_B l hlp
-
-  have neZero_pow_L: ∀ (i:ℕ),NeZero (((l^i):ℕ):L) := by
-    convert neZero_pow_B l hlp
-    exact eqv_zero L B _
-
-  have enough_pow_root_L : ∀ (i : ℕ), HasEnoughRootsOfUnity L (l ^ i):=by
-    intro i
-    specialize neZero_pow_L i
-    exact algclosure_HasEnoughRootOfUnity L K (l^i)
-
-  have ext_root : ∀ (i : ℕ), ∃ ζ : B,IsPrimitiveRoot ζ (l ^ i):= by
-    intro i
-    specialize this i
-    have foo := intclo_HasEnoughRootOfUnity (l^i) (B := B) (A := A) (L := L)
-    exact HasEnoughRootsOfUnity.prim
-
-  obtain ⟨ζ,hζ⟩ := ext_root i
-  have foolish: (ζ:L)= algebraMap B L (ζ:B):= rfl
-  have hζ': IsPrimitiveRoot (ζ:L) (l ^ i):= foo2 (ζ:B) (ζ:L) foolish hζ
-
-  --real proof starts here
   have good_Andrew : g ζ = (ζ ^ q : B) := by
-    have Andrew_Theorem:= AlgHom.IsArithFrobAt.apply_of_pow_eq_one hF hζ.pow_eq_one H1
     have tauto: (F • ζ : B) = g ζ := algebraMap.coe_smul G B L F ζ
-    rw [←tauto, ←Andrew_Theorem]
-    rfl
-
-  have ccspec:= cyclotomicCharacter.spec l g ↑ζ hζ'.pow_eq_one
+    rw [←tauto, ←AlgHom.IsArithFrobAt.apply_of_pow_eq_one hF hζ.pow_eq_one (pow_not_in I l hlp i)]
+    simp
   have pow_eq: (ζ:L)^q = ζ^( (cyclotomicCharacter L l g).val.toZModPow i).val := by
-    rw[← ccspec,good_Andrew]
+    rw[← cyclotomicCharacter.spec l g ↑ζ hζ'.pow_eq_one,good_Andrew]
     exact Eq.symm (algebraMap.coe_pow ζ q)
-
-
-
   rw[pow_eq_ex_eq' (ζ:L) (l^i) hζ' (a := q)
     (b := ((cyclotomicCharacter L l g).val.toZModPow i).val)] at pow_eq
   simp at pow_eq
